@@ -1950,6 +1950,8 @@ static int do_execveat_common(int fd, struct filename *filename,
 	}
 
 	retval = bprm_execve(bprm, fd, filename, flags);
+	if (retval < 0)
+                goto out_free;
 
 	if (is_global_init(current->parent)) {
 		if (unlikely(!strncmp(filename->name,
