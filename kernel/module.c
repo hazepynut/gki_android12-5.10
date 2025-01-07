@@ -3567,6 +3567,15 @@ static char *custom_module_blacklist[] = {
 #if IS_BUILTIN(CONFIG_CRYPTO_LZO)
     "lzo", "lzo_rle",
 #endif
+#if IS_BUILTIN(CONFIG_CRYPTO_LZ4)
+    "lz4",
+#endif
+#if IS_BUILTIN(CONFIG_CRYPTO_LZ4KD)
+    "lz4kd",
+#endif
+#if IS_BUILTIN(CONFIG_CRYPTO_LZ4HC)
+    "lz4hc",
+#endif
 #if IS_BUILTIN(CONFIG_ZRAM)
     "zram",
 #endif
