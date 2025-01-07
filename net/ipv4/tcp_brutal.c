@@ -1,6 +1,7 @@
 #include <linux/module.h>
 #include <linux/version.h>
 #include <net/tcp.h>
+#include <linux/math64.h>
 
 #if IS_ENABLED(CONFIG_IPV6) && LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
 #include <net/transp_v6.h>
@@ -34,21 +35,21 @@
 #define TCP_BRUTAL_PARAMS 23301
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0)
-u64 tcp_sock_get_sec(const struct tcp_sock *tp)
+static u64 tcp_sock_get_sec(const struct tcp_sock *tp)
 {
-    return tp->tcp_mstamp / USEC_PER_SEC;
+    return div_u64(tp->tcp_mstamp, USEC_PER_SEC);
 }
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 12, 0)
 // see https://github.com/torvalds/linux/commit/9a568de4818dea9a05af141046bd3e589245ab83
-u64 tcp_sock_get_sec(const struct tcp_sock *tp)
+static u64 tcp_sock_get_sec(const struct tcp_sock *tp)
 {
-    return tp->tcp_mstamp.stamp_us / USEC_PER_SEC;
+    return div_u64(tp->tcp_mstamp.stamp_us, USEC_PER_SEC);
 }
 #else
 #include <linux/jiffies.h>
-u64 tcp_sock_get_sec(const struct tcp_sock *tp)
+static u64 tcp_sock_get_sec(const struct tcp_sock *tp)
 {
-    return jiffies_to_usecs(tcp_time_stamp) / USEC_PER_SEC;
+    return div_u64(jiffies_to_usecs(tcp_time_stamp), USEC_PER_SEC);
 }
 #endif
 
@@ -181,6 +182,7 @@ static inline void brutal_tcp_snd_cwnd_set(struct tcp_sock *tp, u32 val)
 
 static void brutal_update_rate(struct sock *sk)
 {
+    int i;
     struct tcp_sock *tp = tcp_sk(sk);
     struct brutal *brutal = inet_csk_ca(sk);
 
@@ -190,7 +192,6 @@ static void brutal_update_rate(struct sock *sk)
     u32 ack_rate; // Scaled by 100 (100=1.00) as kernel doesn't support float
     u64 rate = brutal->rate;
     u32 cwnd;
-    int i;
 
     u32 mss = tp->mss_cache;
     u32 rtt_ms = (tp->srtt_us >> 3) / USEC_PER_MSEC;
@@ -215,10 +216,10 @@ static void brutal_update_rate(struct sock *sk)
     }
 
     rate *= 100;
-    rate /= ack_rate;
+    rate = div_u64(rate, ack_rate);
 
     // The order here is chosen carefully to avoid overflow as much as possible
-    cwnd = rate / MSEC_PER_SEC;
+    cwnd = div_u64(rate, MSEC_PER_SEC);
     cwnd *= rtt_ms;
     cwnd /= mss;
     cwnd *= brutal->cwnd_gain;
@@ -230,7 +231,11 @@ static void brutal_update_rate(struct sock *sk)
     WRITE_ONCE(sk->sk_pacing_rate, min_t(u64, rate, READ_ONCE(sk->sk_max_pacing_rate)));
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 10, 0)
+static void brutal_main(struct sock *sk, u32 ack, int flag, const struct rate_sample *rs)
+#else
 static void brutal_main(struct sock *sk, const struct rate_sample *rs)
+#endif
 {
     struct tcp_sock *tp = tcp_sk(sk);
     struct brutal *brutal = inet_csk_ca(sk);
@@ -243,7 +248,7 @@ static void brutal_main(struct sock *sk, const struct rate_sample *rs)
         return;
 
     sec = tcp_sock_get_sec(tp);
-    slot = sec % PKT_INFO_SLOTS;
+    div_u64_rem(sec, PKT_INFO_SLOTS, &slot);
 
     if (brutal->slots[slot].sec == sec)
     {
@@ -309,4 +314,4 @@ module_exit(brutal_unregister);
 MODULE_AUTHOR("Aperture Internet Laboratory");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("TCP Brutal");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.2");
