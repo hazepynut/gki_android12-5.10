@@ -105,7 +105,7 @@ static void extend_surfacefinger_binder_set_priority_handler(void *data, struct 
 	desired.sched_policy = target_node->sched_policy;
 	policy = desired.sched_policy;
 	if (set_binder_rt_task(t)) {
-		desired.sched_policy = SCHED_FIFO;
+		desired.sched_policy = SCHED_RR;
 		desired.prio = 98;
 		policy = desired.sched_policy;
 	}
@@ -121,7 +121,7 @@ static void extend_surfacefinger_binder_trans_handler(void *data, struct binder_
 		strlen("surfaceflinger")) == 0) {
 		if (thread && proc && tr && thread->transaction_stack
 			&& (!(thread->transaction_stack->flags & TF_ONE_WAY))) {
-			target_proc->default_priority.sched_policy = SCHED_FIFO;
+			target_proc->default_priority.sched_policy = SCHED_RR;
 			target_proc->default_priority.prio = 98;
 		}
 	}
