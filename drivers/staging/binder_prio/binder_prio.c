@@ -105,7 +105,7 @@ static void extend_surfacefinger_binder_set_priority_handler(void *data, struct 
 	desired.sched_policy = target_node->sched_policy;
 	policy = desired.sched_policy;
 	if (set_binder_rt_task(t)) {
-		desired.sched_policy = SCHED_RR;
+		desired.sched_policy = SCHED_FIFO;
 		desired.prio = 98;
 		policy = desired.sched_policy;
 	}
@@ -121,7 +121,7 @@ static void extend_surfacefinger_binder_trans_handler(void *data, struct binder_
 		strlen("surfaceflinger")) == 0) {
 		if (thread && proc && tr && thread->transaction_stack
 			&& (!(thread->transaction_stack->flags & TF_ONE_WAY))) {
-			target_proc->default_priority.sched_policy = SCHED_RR;
+			target_proc->default_priority.sched_policy = SCHED_FIFO;
 			target_proc->default_priority.prio = 98;
 		}
 	}
@@ -137,13 +137,11 @@ int __init binder_prio_init(void)
 {
     struct path path;
 
-    pr_info("binder_prio: module init!");
+    pr_info("binder_prio: module init");
 
     if (kern_path(miui_framework, LOOKUP_FOLLOW, &path) == 0) {
-        pr_info("binder_prio: Miui/HyperOS rom detected!\n");
         is_miui_rom = true;
     } else {
-        pr_info("binder_prio: AOSP rom detected!\n");
         is_miui_rom = false;
     }
     path_put(&path);
@@ -161,7 +159,7 @@ void __exit binder_prio_exit(void)
     unregister_trace_android_vh_binder_trans(extend_surfacefinger_binder_trans_handler, NULL);
     unregister_trace_android_vh_binder_priority_skip(extend_skip_binder_thread_priority_from_rt_to_normal_handler, NULL);
 
-    pr_info("binder_prio: module exit!");
+    pr_info("binder_prio: module exit");
 }
 
 module_init(binder_prio_init);
