@@ -3564,6 +3564,7 @@ int __weak module_frob_arch_sections(Elf_Ehdr *hdr,
 /* module_blacklist is a comma-separated list of module names */
 static char *module_blacklist;
 static char *custom_module_blacklist[] = {
+    "binder_prio",
 #if IS_BUILTIN(CONFIG_ZRAM)
     "zram",
 #endif
@@ -3575,9 +3576,6 @@ static char *custom_module_blacklist[] = {
 #endif
 #if IS_BUILTIN(CONFIG_USB_NET_AX88179_178A)
     "ax88179_178a",
-#endif
-#if IS_BUILTIN(CONFIG_BINDER_PRIO)
-    "binder_prio",
 #endif
 #if IS_ENABLED(CONFIG_CORESIGHT_PLACEHOLDER) || IS_ENABLED(CONFIG_CORESIGHT_AMBA_PLACEHOLDER)
     /* Coresight */
