@@ -17,7 +17,9 @@ module_param(debug, uint, 0644);
 #endif
 
 static bool __read_mostly is_miui_rom = false;
+static bool __read_mostly is_tran = false;
 static const char *miui_framework = "/system/framework/MiuiBooster.jar";
+static const char *tran_framework = "/system/framework/transsion-services.jar";
 
 static const char *task_name[] = {
 	"droid.launcher3",  // com.android.launcher3
@@ -30,6 +32,11 @@ static const char *task_name_miui[] = {
 	"com.miui.home",
 	".globallauncher",  // com.mi.android.globallauncher
 	"rsonalassistant",  // com.miui.personalassistant
+};
+
+static const char *task_name_transsion[] = {
+    "ion.XOSLauncher", // com.transsion.XOSLauncher
+	"sion.hilauncher", // com.transsion.hilauncher
 };
 
 static int to_userspace_prio(int policy, int kernel_priority) {
@@ -74,6 +81,10 @@ static bool set_binder_rt_task(struct binder_transaction *t) {
 			if (is_miui_rom) {
 				for (i = 0; i < ARRAY_SIZE(task_name_miui); i++)
 					if (strncmp(from_task_comm, task_name_miui[i], strlen(task_name_miui[i])) == 0)
+						goto yes_and_exit;
+			} else if (is_tran) {
+				for (i = 0; i < ARRAY_SIZE(task_name_transsion); i++)
+					if (strncmp(from_task_comm, task_name_transsion[i], strlen(task_name_transsion[i])) == 0)
 						goto yes_and_exit;
 			}
 		}
@@ -141,9 +152,18 @@ int __init binder_prio_init(void)
 
     if (kern_path(miui_framework, LOOKUP_FOLLOW, &path) == 0) {
         is_miui_rom = true;
+        is_tran = false;
+        pr_info("binder_prio: Xiaomi detected.");
+    } else if (kern_path(tran_framework, LOOKUP_FOLLOW, &path) == 0) {
+        is_miui_rom = false;
+        is_tran = true;
+        pr_info("binder_prio: Transsion detected.");
     } else {
         is_miui_rom = false;
+        is_tran = false;
+        pr_info("binder_prio: AOSP detected.");
     }
+    
     path_put(&path);
 
     register_trace_android_vh_binder_set_priority(extend_surfacefinger_binder_set_priority_handler, NULL);
