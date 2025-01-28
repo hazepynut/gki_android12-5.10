@@ -3595,6 +3595,12 @@ static char *custom_module_blacklist[] = {
 #if IS_BUILTIN(CONFIG_CORESIGHT_AMBA_PLACEHOLDER)
     "coresight_clk_amba_placeholder",
 #endif
+#if IS_BUILTIN(CONFIG_MTK_GPU_SUPPORT)
+    "mtk_gpufreq_wrapper",
+#endif
+#if IS_BUILTIN(CONFIG_MTK_GPU_MT6833_SUPPORT)
+    "mtk_gpufreq_mt6833",
+#endif
 };
 
 static bool blacklisted(const char *module_name)
